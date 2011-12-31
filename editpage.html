@@ -1,0 +1,52 @@
+<!DOCTYPE html> 
+<html> 
+	<head> 
+	<meta name="viewport" content="user-scalable=no, width=device-width" />
+	<title>Edit note</title> 
+	<link rel="stylesheet" href="http://code.jquery.com/mobile/1.0b1/jquery.mobile-1.0b1.min.css" />
+	<script type="text/javascript" src="http://code.jquery.com/jquery-1.6.1.min.js"></script>
+	<script type="text/javascript" src="http://code.jquery.com/mobile/1.0b1/jquery.mobile-1.0b1.min.js"></script>
+</head> 
+<body> 
+<div data-role="page">
+
+  <script>
+    // when the page is complete, fire a "keyup" event to the textarea, to make it grow
+    $(document).bind("pagecreate", function(){
+       $('#f_content').trigger('keyup');
+       //alert('huhu');
+    });
+	</script>
+
+      <div data-role="header">
+        <h1>Edit Note</h1>
+        <a href="{{ delete_url }}" data-icon="delete" data-ajax="false" class="ui-btn-right">Delete</a>
+      </div>
+      <div data-role="content">
+
+
+        <form action="{{ url }}" method="post" data-direction="reverse" data-ajax="false">
+            <fieldset>
+              <div data-role="fieldcontain">
+                <label for="f_showname">Filename</label>
+                <input id="f_showname" name="f_showname" value="{{ showname }}" />
+              </div>
+              
+              <div data-role="fieldcontain">
+                <label for="f_fname">Content</label>
+                <textarea id="f_content" name="f_content" cols="40" rows="10">{{ content }}</textarea>
+              </div>
+              <input type="hidden" id="f_name" name="f_name" value="{{ fname }}" />
+              <input id="f_submit" type="submit" value="save" />
+            </fieldset>
+        </form>
+         
+      </div>
+  
+
+      <div data-role="footer" align="center">
+      <h5>dubnotes.appspot.com</h5>
+      </div>
+</div>  
+</body>
+</html>

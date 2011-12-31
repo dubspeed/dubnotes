@@ -1,0 +1,28 @@
+application: dubnotes
+version: 1
+runtime: python
+api_version: 1
+
+handlers:
+- url: /stylesheets
+  static_dir: stylesheets
+
+- url: /html
+  static_dir: html
+
+- url: /images
+  static_dir: images
+
+- url: /favicon\.ico
+  static_files: images/favicon.ico
+  upload: images/favicon\.ico
+  
+- url: /script
+  static_dir: script
+
+- url: .*
+  script: dubnotes.py
+
+- url: /demo
+  script: demo/demo.py
+
