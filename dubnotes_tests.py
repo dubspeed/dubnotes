@@ -134,4 +134,9 @@ class DubnotesTests(unittest.TestCase):
         self.mainpage.get()
         return self.mainpage.response.out.data
 
-unittest.makeSuite(DubnotesTests,'test')
+if __name__ == "__main__":
+    import fake_dropbox
+    suite1 = unittest.TestLoader().loadTestsFromTestCase(DubnotesTests)
+    suite2 = unittest.TestLoader().loadTestsFromTestCase(fake_dropbox.client.ClientTests)
+    suite = unittest.TestSuite([suite1, suite2])
+    unittest.TextTestRunner(verbosity=2).run(suite)

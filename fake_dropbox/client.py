@@ -91,7 +91,7 @@ class DropboxClient(object):
 #        return self.content_rest.request("GET", url, headers=headers, raw_response=True)
 
 
-class DubnotesTests(unittest.TestCase):
+class ClientTests(unittest.TestCase):
     def setUp(self):
         self.client= DropboxClient("api_host", "content_host", "port", "auth", "token")
     
