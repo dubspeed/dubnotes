@@ -6,11 +6,15 @@ import os
 os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
 from google.appengine.dist import use_library
 use_library('django', '1.2')
-from dropbox import client, rest, auth
+
+from fake_dropbox import client, rest, auth
+from fake_db import db
+#from dropbox import client, rest, auth
+#from google.appengine.ext import db
+
 from oauth import oauth
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
-from google.appengine.ext import db
 from google.appengine.api import users
 from google.appengine.ext.webapp import template
 import StringIO
@@ -176,30 +180,3 @@ def main():
 if __name__ == "__main__":
     main()
 
-
-###############
-
-import unittest
-import httplib
-import string
-
-class LandingPageTestCase(unittest.TestCase):
-    def requestPage(self, url_part):
-        self.httpconnection.request("GET", url_part)
-        return self.httpconnection.getresponse()
-    def setUp(self):
-        self.httpconnection = httplib.HTTPConnection('localhost:8080')
-    def testCorrectHTTPRequest(self):
-        response = self.requestPage("/")
-        assert isinstance(response, httplib.HTTPResponse), "wrong or missing http-Response"
-    def testRedirectToDropboxWhenUnauthenticated(self):
-        response = self.requestPage("/")
-        assert response.status == 302, "expect 302 == FOUND"
-        assert string.find(response.msg.get("location", ""), "https://www.dropbox.com/0/oauth/authorize") >= 0, "wrong website"
-    def testDubnotesLandingPage(self):
-        response = self.requestPage("/?uid=3xxxxxxx98&oauth_token=6xxxxxxxxxhic")
-        assert response.status == 200, "expect 200 == OKAY"
-        assert string.find(response.read(), "Dub Notes") >= 0, "wrong website"
-        
-unittest.makeSuite(LandingPageTestCase, "test")
-        
