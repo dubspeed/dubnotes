@@ -4,6 +4,8 @@ import unittest
 class Model(object):
     @classmethod
     def get_by_key_name(self, key_name):
+        if key_name == "nonexisting_user":
+            return None
         return Model(key_name)
    
     def __init__(self, key_name):
@@ -16,6 +18,8 @@ class Model(object):
             self.req_key = "a_request_key"
             self.req_secret = 'a_request_secret'
             self.datetime= datetime(2012, 01, 01, 00, 00,00)
+    def put(self):
+        pass
     
 def StringProperty():
     pass

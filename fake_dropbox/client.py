@@ -64,6 +64,9 @@ class DropboxClient(object):
     def file_delete(self, root, path, callback=None):
         return self.fake_http_response()
 
+    def file_move(self, root, from_path, to_path, callback=None):
+        return self.fake_http_response()
+
     ## files and folder
     def metadata(self, root, path, file_limit=10000, hash=None, list=True, status_in_response=False, callback=None):
         return self.fake_http_response()

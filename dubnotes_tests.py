@@ -12,15 +12,21 @@ class PseudoSocket(object):
 class StdOutRedirector:
     def __init__(self):
         self.out = PseudoSocket()
- 
+        self.headers = {}
+    def set_status(self, status):
+        self.status = status
+    def clear(self):
+        pass
 
-class DubnotesTests(unittest.TestCase):
+class DictWithURI(dict):
+    uri = "" 
+
+class DubnotesOnlineTests(unittest.TestCase):
     def setUp(self):
         self.httpconnection = httplib.HTTPConnection('localhost:8080')
         self.mainpage = dubnotes.MainPage()
         self.mainpage.response = StdOutRedirector()
     
-    # Online Tests
     def _testCorrectHTTPRequest(self):
         response = self.requestPage("/")
         assert isinstance(response, httplib.HTTPResponse), "wrong or missing http-Response"
@@ -39,11 +45,26 @@ class DubnotesTests(unittest.TestCase):
         self.httpconnection.request("GET", url_part)
         return self.httpconnection.getresponse()
     
-    # Offline Tests    
+class DubnotesOfflineTests(unittest.TestCase):
+    def setUp(self):
+        self.mainpage = dubnotes.MainPage()
+        self.mainpage.response = StdOutRedirector()
+    
     def testQuickAuthOnFakeDropbox(self):
         self.mainpage.request = {'oauth_token':'oauth_token', 'uid':'user'}
         config, db_client, token, user = self.mainpage.quick_auth()
         assert user.uid == 'user'
+        
+    def testQuickAuthWithUnknownUser(self):
+        self.mainpage.request = DictWithURI([('uid', '')])
+        self.mainpage.quick_auth()
+        assert self.mainpage.response.status == 302
+        assert self.mainpage.response.headers['Location'] == 'http://localhost:8080/?uid=user&oauth_token=a_request_token'
+      
+    def testAuthentictionWithWrongUser(self):
+        self.mainpage.request = {'oauth_token':'a_request_token', 'uid':'nonexisting_user'}
+        config, db_client, token, user = self.mainpage.quick_auth()
+        assert user.uid == 'nonexisting_user'
         
     def testListPage(self):
         request = {
@@ -134,9 +155,34 @@ class DubnotesTests(unittest.TestCase):
         self.mainpage.get()
         return self.mainpage.response.out.data
 
+class MinimalRequest():
+    def __init__(self, dict):
+        self.data = dict
+    def get(self, name):
+        return self.data[name]
+
+class DubnotesPostTests(unittest.TestCase):
+    def setUp(self):
+        self.mainpage = dubnotes.MainPage()
+        self.mainpage.response = StdOutRedirector()
+    
+    def testPostFile(self):
+        request = { 
+                    'oauth_token':'oauth_token', 
+                    'uid':'user',
+                    'f_name': 'a_file',
+                    'f_showname': 'a cute file',
+                    'f_content': 'ths is a test'
+                   }
+        self.mainpage.request = MinimalRequest(request)
+        self.mainpage.post()
+        
 if __name__ == "__main__":
     import fake_dropbox
-    suite1 = unittest.TestLoader().loadTestsFromTestCase(DubnotesTests)
-    suite2 = unittest.TestLoader().loadTestsFromTestCase(fake_dropbox.client.ClientTests)
-    suite = unittest.TestSuite([suite1, suite2])
+    suites = []
+    suites.append(unittest.TestLoader().loadTestsFromTestCase(DubnotesOnlineTests))
+    suites.append(unittest.TestLoader().loadTestsFromTestCase(DubnotesOfflineTests))
+    suites.append(unittest.TestLoader().loadTestsFromTestCase(DubnotesPostTests))
+    suites.append(unittest.TestLoader().loadTestsFromTestCase(fake_dropbox.client.ClientTests))
+    suite = unittest.TestSuite(suites)
     unittest.TextTestRunner(verbosity=2).run(suite)
