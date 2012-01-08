@@ -1,36 +1,27 @@
-#vim: set tabstop=4:
-#vim: set expandtab:
-#vim: set shiftwidth=4:
-
-import os
+import os, os.path
+import cgi
+import StringIO
 os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
 from google.appengine.dist import use_library
 use_library('django', '1.2')
-
 from fake_dropbox import client, rest, auth
 from fake_db import db
-#from dropbox import client, rest, auth
-#from google.appengine.ext import db
-
 from oauth import oauth
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.api import users
 from google.appengine.ext.webapp import template
-import StringIO
-import os.path
-import cgi
 from datetime import datetime
 
 class DropToken(db.Model):
-    req_key=db.StringProperty()
-    req_secret=db.StringProperty()
-    datetime=db.DateTimeProperty()
+    req_key = db.StringProperty()
+    req_secret = db.StringProperty()
+    datetime = db.DateTimeProperty()
 
 class User(db.Model):
-    uid=db.StringProperty()
-    access_key=db.StringProperty()
-    access_secret=db.StringProperty()
+    uid = db.StringProperty()
+    access_key = db.StringProperty()
+    access_secret = db.StringProperty()
 
 def authenticate(reqhandler, config, dba):
     # Get an authenticator for the app 
@@ -47,6 +38,11 @@ def authenticate(reqhandler, config, dba):
     #send to authenticator webpapge,  may he return...
     reqhandler.redirect(authorize_url)
   
+class AuthenticationException(Exception):
+    def __init__(self, message):
+        self.message = message
+    def __str__(self):
+        return repr(self.message)
  
 class MainPage(webapp.RequestHandler):
     def quick_auth(self):
@@ -75,9 +71,9 @@ class MainPage(webapp.RequestHandler):
             user = User (key_name=uid)
             user.uid = uid
             user.access_key = access_token.key
-            user.access_secret=access_token.secret
+            user.access_secret = access_token.secret
             user.put()
-          db_client = client.DropboxClient(config['server'], config['content_server'], 
+          db_client = client.DropboxClient(config['server'], config['content_server'],
                                            config['port'], dba, access_token)
       return config, db_client, token, user            
   
@@ -92,7 +88,7 @@ class MainPage(webapp.RequestHandler):
         fname = self.request.get("f_name")
         showname = self.request.get("f_showname")
         content = self.request.get("f_content")
-        s=StringIO.StringIO(content.encode("utf-8"))
+        s = StringIO.StringIO(content.encode("utf-8"))
         if fname != '':
             folder, s.name = os.path.split(fname)
             f = db_client.put_file (config['root'], folder, s)
@@ -112,18 +108,30 @@ class MainPage(webapp.RequestHandler):
               
     def get(self):
         try:
-          config, db_client, token, user = self.quick_auth()
+            self.authenticate_user()
+        except AuthenticationException as e:
+            self.display_authentication_error(e)
+        else:
+            self.evaluate_request()
+        
+    def authenticate_user(self):
+        try:
+          self.auth_data = self.quick_auth()
         except:
-          self.response.out.write('Authentication error.')
-          return
-       
+          raise AuthenticationException("Authentication error.")
+
+    def display_authentication_error(self, exception):
+        self.repsonse.out.write (exception)
+
+    def evaluate_request(self):
         # evaluate action
+        config, db_client, token, user = self.auth_data
         action = self.request.get('action')
-        if action=='edit':
+        if action == 'edit':
           self.show_editor(config, db_client, token, user)
-        elif action=='new':
+        elif action == 'new':
           self.create_new_file(config, db_client, token, user)
-        elif action=='delete':
+        elif action == 'delete':
           db_client.file_delete(config['root'], self.request.get('fname'))
           self.list_view(config, db_client, token, user)
         else:
@@ -134,21 +142,21 @@ class MainPage(webapp.RequestHandler):
       ret = db_client.metadata (config['root'], config['dubnotes_folder'])
       if ret.status == 403:
         db_client.create_folder (config['root'], config['dubnotes_folder'])      
-      s=StringIO.StringIO('')
-      s.name='note_' + datetime.time(datetime.now()).isoformat().split('.')[0].replace(':','_') + '.txt'
+      s = StringIO.StringIO('')
+      s.name = 'note_' + datetime.time(datetime.now()).isoformat().split('.')[0].replace(':', '_') + '.txt'
       f = db_client.put_file (config['root'], config['dubnotes_folder'], s)
       self.list_view(config, db_client, token, user)
         
     def show_editor(self, config, db_client, token, user):
         fname = self.request.get("get")
-        content=''
+        content = ''
         if fname != '':
              f = db_client.get_file (config['root'], fname)
-             content=f.read()
+             content = f.read()
              f.close()
-        template_values={'delete_url':' /?uid=' + user.uid + '&oauth_token='+ token.req_key + '&fname=' +fname+ '&action=delete',
-                         'url':'/?uid=' + user.uid + '&oauth_token='+ token.req_key, 
-                         'content': content, 
+        template_values = {'delete_url':' /?uid=' + user.uid + '&oauth_token=' + token.req_key + '&fname=' + fname + '&action=delete',
+                         'url':'/?uid=' + user.uid + '&oauth_token=' + token.req_key,
+                         'content': content,
                          'fname': fname,
                          'showname': os.path.basename(fname)}
         path = os.path.join(os.path.dirname(__file__), 'editpage.html')
@@ -157,7 +165,7 @@ class MainPage(webapp.RequestHandler):
         
     def list_view(self, config, db_client, token, user):
         # Build list of files and folders
-        resp=db_client.metadata(config['root'], config['dubnotes_folder'])
+        resp = db_client.metadata(config['root'], config['dubnotes_folder'])
         
         if resp.status == 404:
           self.create_new_file(config, db_client, token, user)
@@ -171,7 +179,7 @@ class MainPage(webapp.RequestHandler):
         self.response.out.write(template.render(path, template_values))
 
 application = webapp.WSGIApplication(
-                                     [('/', MainPage),],
+                                     [('/', MainPage), ],
                                      debug=False)
 
 def main():
