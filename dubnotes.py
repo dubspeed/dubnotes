@@ -48,50 +48,73 @@ class MainPage(webapp.RequestHandler):
     def quick_auth(self):
       # check if we have a uid in the request
       uid = self.request.get('uid')
-      config = auth.Authenticator.load_config ("dubnotes.ini")
-      dba = auth.Authenticator(config)
-      db_client = None
+      self.config = auth.Authenticator.load_config ("dubnotes.ini")
+      dba = auth.Authenticator(self.config)
+      self.db_client = None
       if uid == "":
-        authenticate(self, config, dba)
+        authenticate(self, self.config, dba)
         return
       else:
         # check if we have that token
         req_token = self.request.get('oauth_token')  
-        token = DropToken.get_by_key_name (req_token)
-        if token:
+        self.token = DropToken.get_by_key_name (req_token)
+        if self.token:
           # we have that token, now we learned the uid for that request
           # do we have a access token for that user?
-          user = User.get_by_key_name (uid)
-          if user:
-            access_token = oauth.OAuthToken(str(user.access_key), str(user.access_secret))
+          self.user = User.get_by_key_name (uid)
+          if self.user:
+            access_token = oauth.OAuthToken(str(self.user.access_key), str(self.user.access_secret))
           else:
             # create a new user entry and try to get an access token
-            req_token = oauth.OAuthToken(str(token.req_key), str(token.req_secret))
-            access_token = dba.obtain_access_token (req_token, config['verifier'])
-            user = User (key_name=uid)
-            user.uid = uid
-            user.access_key = access_token.key
-            user.access_secret = access_token.secret
-            user.put()
-          db_client = client.DropboxClient(config['server'], config['content_server'],
-                                           config['port'], dba, access_token)
-      return config, db_client, token, user            
+            req_token = oauth.OAuthToken(str(self.token.req_key), str(self.token.req_secret))
+            access_token = dba.obtain_access_token (req_token, self.config['verifier'])
+            self.user = User (key_name=uid)
+            self.user.uid = uid
+            self.user.access_key = access_token.key
+            self.user.access_secret = access_token.secret
+            self.user.put()
+          self.db_client = client.DropboxClient(self.config['server'], self.config['content_server'],
+                                           self.config['port'], dba, access_token)
+      #return self.config, self.db_client, self.token, self.user            
   
+    def get(self):
+        if self.force_authentication() == True:
+            self.evaluate_get_request()
+
     def post(self):
+        if self.force_authentication() == True:
+            self.evaluate_post_request()
+
+    def force_authentication(self):
         try:
-          config, db_client, token, user = self.quick_auth()
-        except:
-          self.response.out.write('Authentication error.')
-          return
-       
+            self.authenticate_user()
+            return True
+        except AuthenticationException as e:
+            self.display_authentication_error(e)
+        return False
+
+    def evaluate_get_request(self):
+        action = self.request.get('action')
+        if action == 'edit':
+          self.show_editor()
+        elif action == 'new':
+          self.create_new_file()
+        elif action == 'delete':
+          self.db_client.file_delete(self.config['root'], self.request.get('fname'))
+          self.list_view()
+        else:
+          self.list_view()
+
+    def evaluate_post_request(self):       
         # save text
+        
         fname = self.request.get("f_name")
         showname = self.request.get("f_showname")
         content = self.request.get("f_content")
         s = StringIO.StringIO(content.encode("utf-8"))
         if fname != '':
             folder, s.name = os.path.split(fname)
-            f = db_client.put_file (config['root'], folder, s)
+            f = self.db_client.put_file (self.config['root'], folder, s)
             #self.response.out.write(f.status)
             if f.status != 200:
               pass
@@ -100,20 +123,12 @@ class MainPage(webapp.RequestHandler):
         # has the file be renamed?
         if fname != '' and os.path.basename(fname) != showname:
           folder, name = os.path.split(fname)
-          f = db_client.file_move (config['root'], fname, os.path.join(folder, showname))
+          f = self.db_client.file_move (self.config['root'], fname, os.path.join(folder, showname))
           if f.status != 200:
             pass
             # could not rename
-        self.list_view(config, db_client, token, user)
+        self.list_view()
               
-    def get(self):
-        try:
-            self.authenticate_user()
-        except AuthenticationException as e:
-            self.display_authentication_error(e)
-        else:
-            self.evaluate_request()
-        
     def authenticate_user(self):
         try:
           self.auth_data = self.quick_auth()
@@ -121,41 +136,27 @@ class MainPage(webapp.RequestHandler):
           raise AuthenticationException("Authentication error.")
 
     def display_authentication_error(self, exception):
-        self.repsonse.out.write (exception)
+        self.response.out.write (exception)
 
-    def evaluate_request(self):
-        # evaluate action
-        config, db_client, token, user = self.auth_data
-        action = self.request.get('action')
-        if action == 'edit':
-          self.show_editor(config, db_client, token, user)
-        elif action == 'new':
-          self.create_new_file(config, db_client, token, user)
-        elif action == 'delete':
-          db_client.file_delete(config['root'], self.request.get('fname'))
-          self.list_view(config, db_client, token, user)
-        else:
-          self.list_view(config, db_client, token, user)
-    
-    def create_new_file(self, config, db_client, token, user):
+    def create_new_file(self):
       # first check if we have a folder called "notes" under root, if not create it first
-      ret = db_client.metadata (config['root'], config['dubnotes_folder'])
+      ret = self.db_client.metadata (self.config['root'], self.config['dubnotes_folder'])
       if ret.status == 403:
-        db_client.create_folder (config['root'], config['dubnotes_folder'])      
+        self.db_client.create_folder (self.config['root'], self.config['dubnotes_folder'])      
       s = StringIO.StringIO('')
       s.name = 'note_' + datetime.time(datetime.now()).isoformat().split('.')[0].replace(':', '_') + '.txt'
-      f = db_client.put_file (config['root'], config['dubnotes_folder'], s)
-      self.list_view(config, db_client, token, user)
+      f = self.db_client.put_file (self.config['root'], self.config['dubnotes_folder'], s)
+      self.list_view()
         
-    def show_editor(self, config, db_client, token, user):
+    def show_editor(self):
         fname = self.request.get("get")
         content = ''
         if fname != '':
-             f = db_client.get_file (config['root'], fname)
+             f = self.db_client.get_file (self.config['root'], fname)
              content = f.read()
              f.close()
-        template_values = {'delete_url':' /?uid=' + user.uid + '&oauth_token=' + token.req_key + '&fname=' + fname + '&action=delete',
-                         'url':'/?uid=' + user.uid + '&oauth_token=' + token.req_key,
+        template_values = {'delete_url':' /?uid=' + self.user.uid + '&oauth_token=' + self.token.req_key + '&fname=' + fname + '&action=delete',
+                         'url':'/?uid=' + self.user.uid + '&oauth_token=' + self.token.req_key,
                          'content': content,
                          'fname': fname,
                          'showname': os.path.basename(fname)}
@@ -163,16 +164,16 @@ class MainPage(webapp.RequestHandler):
         self.response.out.write(template.render(path, template_values))
         
         
-    def list_view(self, config, db_client, token, user):
+    def list_view(self):
         # Build list of files and folders
-        resp = db_client.metadata(config['root'], config['dubnotes_folder'])
+        resp = self.db_client.metadata(self.config['root'], self.config['dubnotes_folder'])
         
         if resp.status == 404:
-          self.create_new_file(config, db_client, token, user)
+          self.create_new_file()
           
         template_values = {
-            'files': [['/?uid=' + user.uid + '&oauth_token=' + token.req_key + '&action=edit&get=' + cgi.escape(x["path"]), os.path.basename(x["path"])] for x in resp.data['contents'] if not x['is_dir']],
-            'new_url': '/?uid=' + user.uid + '&oauth_token=' + token.req_key + '&action=new',
+            'files': [['/?uid=' + self.user.uid + '&oauth_token=' + self.token.req_key + '&action=edit&get=' + cgi.escape(x["path"]), os.path.basename(x["path"])] for x in resp.data['contents'] if not x['is_dir']],
+            'new_url': '/?uid=' + self.user.uid + '&oauth_token=' + self.token.req_key + '&action=new',
         }
      
         path = os.path.join(os.path.dirname(__file__), 'mainpage.html')

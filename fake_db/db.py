@@ -6,7 +6,7 @@ class Model(object):
     def get_by_key_name(self, key_name):
         if key_name == "user":
             return UserModel(key_name)
-        elif key_name == "nonexisting_user":
+        elif key_name == "non_existing_user" or key_name == None:
             return None
         else:
             return TokenModel(key_name)
