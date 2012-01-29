@@ -52,28 +52,28 @@ class DubnotesOfflineTests(unittest.TestCase):
     
     def testQuickAuthOnFakeDropbox(self):
         self.mainpage.request = {'oauth_token':'oauth_token', 'uid':'user'}
-        self.mainpage.quick_auth()
+        self.mainpage.authenticate_user()
         assert self.mainpage.user.uid == 'user'
         
     def testPartitialAuthentication(self):
         self.mainpage.request = {'oauth_token':'oauth_token'}
-        self.mainpage.quick_auth()
+        self.mainpage.authenticate_user()
         assert self.mainpage.user.uid == None
         self.mainpage.request = {'uid':'user'}
-        self.mainpage.quick_auth()
-        assert self.mainpage.user.uid == None
+        self.mainpage.authenticate_user()
+        assert self.mainpage.user == None
         
     def testQuickAuthWithUnknownUser(self):
         self.mainpage.request = DictWithURI([('uid', '')])
-        self.mainpage.quick_auth()
+        self.mainpage.authenticate_user()
         assert self.mainpage.response.status == 302
         assert self.mainpage.response.headers['Location'] == 'http://localhost:8080/?uid=user&oauth_token=a_request_token'
       
     def testAuthentictionWithWrongUser(self):
         self.mainpage.request = {'oauth_token':'a_request_token', 'uid':'non_existing_user'}
-        self.mainpage.quick_auth()
+        self.mainpage.authenticate_user()
         assert self.mainpage.user.uid == 'non_existing_user'
-        
+
     def testListPage(self):
         request = {
                    'oauth_token':'oauth_token', 
@@ -157,7 +157,7 @@ class DubnotesOfflineTests(unittest.TestCase):
         
     def makeFakeGetRequest(self, request, testdata=None, status=202):
         self.mainpage.request = request
-        self.mainpage.quick_auth()
+        self.mainpage.authenticate_user()
         fake_dropbox.client.DropboxClient.set_demo_data(testdata)
         fake_dropbox.client.DropboxClient.set_demo_status(status)
         self.mainpage.get()

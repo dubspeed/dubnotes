@@ -23,40 +23,57 @@ class User(db.Model):
     access_key = db.StringProperty()
     access_secret = db.StringProperty()
 
-def authenticate(reqhandler, config, dba):
-    # Get an authenticator for the app 
-    # Get the request token
-    req_token = dba.obtain_request_token()
-    # store token for later
-    token = DropToken (key_name=req_token.key)
-    token.req_key = req_token.key
-    token.req_secret = req_token.secret
-    token.datetime = datetime.now()
-    token.put()
-    
-    authorize_url = dba.build_authorize_url(req_token, reqhandler.request.uri)
-    #send to authenticator webpapge,  may he return...
-    reqhandler.redirect(authorize_url)
+
   
 class AuthenticationException(Exception):
     def __init__(self, message):
         self.message = message
     def __str__(self):
         return repr(self.message)
- 
-class MainPage(webapp.RequestHandler):
-    def quick_auth(self):
+
+class Authenticator:
+    def __init__ (self):
+        self.config = self.user = self.token = self.db_client = None
+        
+    def authenticate(self, reqhandler, config, dba):
+        # Get an authenticator for the app 
+        # Get the request token
+        req_token = dba.obtain_request_token()
+        # store token for later
+        token = DropToken (key_name=req_token.key)
+        token.req_key = req_token.key
+        token.req_secret = req_token.secret
+        token.datetime = datetime.now()
+        token.put()
+        
+        authorize_url = dba.build_authorize_url(req_token, reqhandler.request.uri)
+        #send to authenticator webpapge,  may he return...
+        reqhandler.redirect(authorize_url)
+
+        
+
+    #def get_uid_from_request(self, request):
+    #    return request.get('uid')
+
+    #def quick_auth(self, request):
+    #    if valid_uid_in_request(request):
+    #        reauthenticate_user()
+    #    else:
+    #        authenticate(self, self.config, dba)
+        
+
+    def quick_auth(self, request_handler):
       # check if we have a uid in the request
-      uid = self.request.get('uid')
+      uid = request_handler.request.get('uid')
       self.config = auth.Authenticator.load_config ("dubnotes.ini")
       dba = auth.Authenticator(self.config)
       self.db_client = None
       if uid == "":
-        authenticate(self, self.config, dba)
+        self.authenticate(request_handler, self.config, dba)
         return
       else:
         # check if we have that token
-        req_token = self.request.get('oauth_token')  
+        req_token = request_handler.request.get('oauth_token')  
         self.token = DropToken.get_by_key_name (req_token)
         if self.token:
           # we have that token, now we learned the uid for that request
@@ -75,8 +92,10 @@ class MainPage(webapp.RequestHandler):
             self.user.put()
           self.db_client = client.DropboxClient(self.config['server'], self.config['content_server'],
                                            self.config['port'], dba, access_token)
-      #return self.config, self.db_client, self.token, self.user            
-  
+        
+        
+
+class MainPage(webapp.RequestHandler):
     def get(self):
         if self.force_authentication() == True:
             self.evaluate_get_request()
@@ -130,8 +149,13 @@ class MainPage(webapp.RequestHandler):
         self.list_view()
               
     def authenticate_user(self):
+        authenticator = Authenticator()
         try:
-          self.auth_data = self.quick_auth()
+            authenticator.quick_auth(self)
+            self.db_client = authenticator.db_client
+            self.user = authenticator.user
+            self.config = authenticator.config
+            self.token = authenticator.token
         except:
           raise AuthenticationException("Authentication error.")
 
