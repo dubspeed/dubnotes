@@ -23,7 +23,27 @@ class User(db.Model):
     access_key = db.StringProperty()
     access_secret = db.StringProperty()
 
+def db_get_token(token):
+    return DropToken.get_by_key_name (token)
 
+def db_store_token(token):
+    t = DropToken (key_name=token.key)
+    t.req_key = token.key
+    t.req_secret = token.secret
+    t.datetime = datetime.now()
+    t.put()
+    return t
+
+def db_get_user (uid):
+    return User.get_by_key_name (uid)
+        
+def db_store_user (uid, key, secret):
+    u = User(key_name=uid)
+    u.uid = uid
+    u.access_key = key
+    u.access_secret = secret
+    u.put()    
+    return u
   
 class AuthenticationException(Exception):
     def __init__(self, message):
@@ -33,67 +53,30 @@ class AuthenticationException(Exception):
 
 class Authenticator:
     def __init__ (self):
-        self.config = self.user = self.token = self.db_client = None
-        
-    def authenticate(self, reqhandler, config, dba):
-        # Get an authenticator for the app 
-        # Get the request token
-        req_token = dba.obtain_request_token()
-        # store token for later
-        token = DropToken (key_name=req_token.key)
-        token.req_key = req_token.key
-        token.req_secret = req_token.secret
-        token.datetime = datetime.now()
-        token.put()
-        
-        authorize_url = dba.build_authorize_url(req_token, reqhandler.request.uri)
-        #send to authenticator webpapge,  may he return...
-        reqhandler.redirect(authorize_url)
+        self.config = auth.Authenticator.load_config ("dubnotes.ini")
+        self.dropbox_auth = auth.Authenticator(self.config)
+        self.user = self.token = self.dropbox_client = None
 
-        
-
-    #def get_uid_from_request(self, request):
-    #    return request.get('uid')
-
-    #def quick_auth(self, request):
-    #    if valid_uid_in_request(request):
-    #        reauthenticate_user()
-    #    else:
-    #        authenticate(self, self.config, dba)
-        
-
-    def quick_auth(self, request_handler):
-      # check if we have a uid in the request
-      uid = request_handler.request.get('uid')
-      self.config = auth.Authenticator.load_config ("dubnotes.ini")
-      dba = auth.Authenticator(self.config)
-      self.db_client = None
-      if uid == "":
-        self.authenticate(request_handler, self.config, dba)
-        return
-      else:
-        # check if we have that token
-        req_token = request_handler.request.get('oauth_token')  
-        self.token = DropToken.get_by_key_name (req_token)
-        if self.token:
-          # we have that token, now we learned the uid for that request
-          # do we have a access token for that user?
-          self.user = User.get_by_key_name (uid)
-          if self.user:
-            access_token = oauth.OAuthToken(str(self.user.access_key), str(self.user.access_secret))
-          else:
-            # create a new user entry and try to get an access token
-            req_token = oauth.OAuthToken(str(self.token.req_key), str(self.token.req_secret))
-            access_token = dba.obtain_access_token (req_token, self.config['verifier'])
-            self.user = User (key_name=uid)
-            self.user.uid = uid
-            self.user.access_key = access_token.key
-            self.user.access_secret = access_token.secret
-            self.user.put()
-          self.db_client = client.DropboxClient(self.config['server'], self.config['content_server'],
-                                           self.config['port'], dba, access_token)
-        
-        
+    def obtain_request_token(self):
+        return self.dropbox_auth.obtain_request_token()
+            
+    def reauthenticate_user(self, uid, token):
+        if token:
+            self.token = token
+            self.user = db_get_user(uid)
+            if self.user:
+              access_token = oauth.OAuthToken(str(self.user.access_key), str(self.user.access_secret))
+            else:
+              # create a new user entry and try to get an access token
+              oauth_token = oauth.OAuthToken(str(token.req_key), str(token.req_secret))
+              access_token = self.dropbox_auth.obtain_access_token (oauth_token, self.config['verifier'])
+              self.user = db_store_user(uid, access_token.key, access_token.secret)
+            
+            self.dropbox_client = client.DropboxClient(self.config['server'], self.config['content_server'],
+                                             self.config['port'], self.dropbox_auth, access_token)
+        else:
+            # case not handled ... ?
+            pass
 
 class MainPage(webapp.RequestHandler):
     def get(self):
@@ -119,21 +102,20 @@ class MainPage(webapp.RequestHandler):
         elif action == 'new':
           self.create_new_file()
         elif action == 'delete':
-          self.db_client.file_delete(self.config['root'], self.request.get('fname'))
+          self.dropbox_client.file_delete(self.config['root'], self.request.get('fname'))
           self.list_view()
         else:
           self.list_view()
 
     def evaluate_post_request(self):       
         # save text
-        
         fname = self.request.get("f_name")
         showname = self.request.get("f_showname")
         content = self.request.get("f_content")
         s = StringIO.StringIO(content.encode("utf-8"))
         if fname != '':
             folder, s.name = os.path.split(fname)
-            f = self.db_client.put_file (self.config['root'], folder, s)
+            f = self.dropbox_client.put_file (self.config['root'], folder, s)
             #self.response.out.write(f.status)
             if f.status != 200:
               pass
@@ -142,41 +124,68 @@ class MainPage(webapp.RequestHandler):
         # has the file be renamed?
         if fname != '' and os.path.basename(fname) != showname:
           folder, name = os.path.split(fname)
-          f = self.db_client.file_move (self.config['root'], fname, os.path.join(folder, showname))
+          f = self.dropbox_client.file_move (self.config['root'], fname, os.path.join(folder, showname))
           if f.status != 200:
             pass
             # could not rename
         self.list_view()
               
     def authenticate_user(self):
-        authenticator = Authenticator()
+        self.authenticator = Authenticator()
         try:
-            authenticator.quick_auth(self)
-            self.db_client = authenticator.db_client
-            self.user = authenticator.user
-            self.config = authenticator.config
-            self.token = authenticator.token
+            self.decide_authentication_path()
+            self.dropbox_client = self.authenticator.dropbox_client
+            self.user = self.authenticator.user
+            self.config = self.authenticator.config
+            self.token = self.authenticator.token
         except:
-          raise AuthenticationException("Authentication error.")
+            raise AuthenticationException("Authentication error.")
+
+    def decide_authentication_path(self):
+        if self.is_valid_uid_in_request():
+            uid = self.get_uid_from_request()
+            oauth_token = self.get_oauth_token_from_request()
+            self.authenticator.reauthenticate_user(uid, db_get_token(oauth_token))
+        else:
+            token = self.authenticator.obtain_request_token()
+            db_store_token(token)
+            self.redirect_to_dropbox(token, self.authenticator.dropbox_auth)
+
+    def is_valid_uid_in_request(self):
+        if self.get_uid_from_request() == "":
+            return False
+        return True
+        
+    def get_uid_from_request(self):
+        uid = self.request.get('uid') 
+        return uid
+
+    def get_oauth_token_from_request(self):
+        oauth_token = self.request.get('oauth_token') 
+        return oauth_token
+
+    def redirect_to_dropbox(self, token, dropbox_auth):    
+        authorize_url = dropbox_auth.build_authorize_url(token, self.request.uri)
+        self.redirect(authorize_url)
 
     def display_authentication_error(self, exception):
         self.response.out.write (exception)
 
     def create_new_file(self):
       # first check if we have a folder called "notes" under root, if not create it first
-      ret = self.db_client.metadata (self.config['root'], self.config['dubnotes_folder'])
+      ret = self.dropbox_client.metadata (self.config['root'], self.config['dubnotes_folder'])
       if ret.status == 403:
-        self.db_client.create_folder (self.config['root'], self.config['dubnotes_folder'])      
+        self.dropbox_client.create_folder (self.config['root'], self.config['dubnotes_folder'])      
       s = StringIO.StringIO('')
       s.name = 'note_' + datetime.time(datetime.now()).isoformat().split('.')[0].replace(':', '_') + '.txt'
-      f = self.db_client.put_file (self.config['root'], self.config['dubnotes_folder'], s)
+      f = self.dropbox_client.put_file (self.config['root'], self.config['dubnotes_folder'], s)
       self.list_view()
         
     def show_editor(self):
         fname = self.request.get("get")
         content = ''
         if fname != '':
-             f = self.db_client.get_file (self.config['root'], fname)
+             f = self.dropbox_client.get_file (self.config['root'], fname)
              content = f.read()
              f.close()
         template_values = {'delete_url':' /?uid=' + self.user.uid + '&oauth_token=' + self.token.req_key + '&fname=' + fname + '&action=delete',
@@ -190,7 +199,7 @@ class MainPage(webapp.RequestHandler):
         
     def list_view(self):
         # Build list of files and folders
-        resp = self.db_client.metadata(self.config['root'], self.config['dubnotes_folder'])
+        resp = self.dropbox_client.metadata(self.config['root'], self.config['dubnotes_folder'])
         
         if resp.status == 404:
           self.create_new_file()
@@ -212,4 +221,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
