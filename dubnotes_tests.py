@@ -56,16 +56,21 @@ class DubnotesOfflineTests(unittest.TestCase):
         assert self.mainpage.auth.user.uid == 'user'
         
     def testPartitialAuthentication(self):
-        self.mainpage.request = {'oauth_token':'oauth_token'}
-        self.mainpage.authenticate_user()
-        assert self.mainpage.auth.user.uid == None
-        self.mainpage.request = {'uid':'user'}
-        self.mainpage.authenticate_user()
-        assert self.mainpage.auth.user == None
+        self.mainpage.request = DictWithURI([('oauth_token', 'oauth_token')])
+        self.mainpage.force_authentication()
+        assert isinstance(self.mainpage.auth, dubnotes.RedirectedSession)
+        self.assertEqual (False, self.mainpage.force_authentication())
+        self.mainpage.request = DictWithURI([('uid', 'user')])
+        with self.assertRaises(dubnotes.AuthenticationException):
+            self.mainpage.authenticate_user()
+        self.assertEqual (False, self.mainpage.force_authentication())
+        assert isinstance(self.mainpage.auth, dubnotes.RedirectedSession)
         
     def testQuickAuthWithUnknownUser(self):
         self.mainpage.request = DictWithURI([('uid', '')])
-        self.mainpage.authenticate_user()
+        with self.assertRaises(dubnotes.AuthenticationException):
+            self.mainpage.authenticate_user()
+            
         assert self.mainpage.response.status == 302
         assert self.mainpage.response.headers['Location'] == 'http://localhost:8080/?uid=user&oauth_token=a_request_token'
       
