@@ -139,9 +139,9 @@ class MainPage(webapp.RequestHandler):
         try:
             self.authenticate_user()
             return True
-        except AuthenticationException as e:
+        except AuthenticationException, e:
             self.display_authentication_error(e)
-        except RedirectionException as e:
+        except RedirectionException, e:
             return False
         return False
 
