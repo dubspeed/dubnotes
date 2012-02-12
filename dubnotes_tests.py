@@ -171,7 +171,9 @@ class DubnotesOfflineTests(unittest.TestCase):
 class MinimalRequest():
     def __init__(self, dict):
         self.data = dict
-    def get(self, name):
+    def get(self, name, default_value=""):
+        if not self.data.has_key(name):
+            return default_value
         return self.data[name]
 
 class DubnotesPostTests(unittest.TestCase):
