@@ -6,6 +6,7 @@ from google.appengine.dist import use_library
 use_library('django', '1.2')
 from fake_dropbox import client, rest, auth
 from fake_db import db
+#from google.appengine.ext import db
 from oauth import oauth
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
@@ -104,7 +105,7 @@ class AuthenticatedSession(Session):
 class SessionFactory:
     @staticmethod 
     def create(request):
-        if request.get('uid') == None or request.get('oauth_token') == None:
+        if request.get('uid',None) == None or request.get('oauth_token',None) == None:
             return RedirectedSession(request)
         else:
             return AuthenticatedSession(request)
@@ -157,6 +158,7 @@ class MainPage(webapp.RequestHandler):
                                                    conf['port'], self.auth.dropbox_auth, self.auth.access_token)
         
 
+    # Idee : Strategy Pattern !! -> OCP, jede Action eine Klasse
     def evaluate_get_request(self):
         action = self.request.get('action')
         if action == 'edit':
