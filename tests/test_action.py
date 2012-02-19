@@ -36,3 +36,6 @@ class TestActions(unittest.TestCase):
         path, template = list_act.do()
         self.assertEqual("../mainpage.html", path)
         self.assertEqual(True, template.has_key("new_url"))
+        
+        
+        

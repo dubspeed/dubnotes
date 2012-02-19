@@ -1,37 +1,44 @@
 import os, cgi
 import StringIO
 import datetime
+if os.environ.has_key('DUBNOTES_DEBUG'):
+    from fake_dropbox import client, rest, auth
+else:
+    from dropbox import client, rest, auth
 
 class ActionFactory(object):
     @staticmethod
-    def create(action, request, dropbox_client, session):
+    def create(action, request, session):
         if action == 'edit':
-            return EditAction(request, dropbox_client, session)
+            return EditAction(request, session)
         elif action == 'new':
-            return NewAction(dropbox_client, session)
+            return NewAction(session)
         elif action == 'delete':
-            return DeleteAction(request, dropbox_client, session)
+            return DeleteAction(request, session)
         elif action == 'save':
-            return SaveAction(request, dropbox_client, session)
+            return SaveAction(request, session)
             pass
-        return ListAction(dropbox_client, session)
+        return ListAction(session)
 
 
 class Action(object):
-    def __init__(self, dropbox_client, session):
-        self.dropbox_client = dropbox_client
+    def __init__(self, session):
         self.session = session
+        conf = self.session.config
+        self.dropbox_client = client.DropboxClient(conf['server'], conf['content_server'],
+                                                   conf['port'], self.session.dropbox_auth, self.session.access_token)
         
     def do(self):
         pass
 
  
+ 
 class EditAction(Action):
-    def __init__(self, request, dropbox_client, session):
+    def __init__(self, request, session):
         self.request = request
         self.filename = ""
         self.content = ""
-        super(EditAction, self).__init__(dropbox_client, session)
+        super(EditAction, self).__init__(session)
     
     def build_edit_template(self):
         return {'delete_url':' /?uid=' + self.session.user.uid + '&oauth_token=' + self.session.request_token.req_key + '&fname=' + self.filename + '&action=delete',
@@ -56,8 +63,8 @@ class EditAction(Action):
         
               
 class ListAction(Action):
-    def __init__(self, dropbox_client, session):
-        super(ListAction, self).__init__(dropbox_client, session)
+    def __init__(self, session):
+        super(ListAction, self).__init__(session)
 
     def build_list_template(self):
         return {
@@ -86,9 +93,9 @@ class ListAction(Action):
               
                 
 class SaveAction(ListAction):
-    def __init__(self, request, dropbox_client, session):
+    def __init__(self, request, session):
         self.request = request
-        super(SaveAction, self).__init__(dropbox_client, session)
+        super(SaveAction, self).__init__(session)
 
     def do(self):
         fname = self.request.get("f_name")
@@ -114,9 +121,9 @@ class SaveAction(ListAction):
  
  
 class DeleteAction(ListAction):
-    def __init__(self, request, dropbox_client, session):
+    def __init__(self, request, session):
         self.request = request
-        super(DeleteAction, self).__init__(dropbox_client, session)  
+        super(DeleteAction, self).__init__(session)  
           
     def do(self):
         self.dropbox_client.file_delete(self.session.config['root'], self.request.get('fname'))
@@ -124,8 +131,8 @@ class DeleteAction(ListAction):
    
    
 class NewAction(ListAction):
-    def __init__(self, dropbox_client, session):
-        super(NewAction, self).__init__(dropbox_client, session)  
+    def __init__(self, session):
+        super(NewAction, self).__init__(session)  
     
     def create_new_file(self):
         ret = self.dropbox_client.metadata (self.session.config['root'], self.session.config['dubnotes_folder'])

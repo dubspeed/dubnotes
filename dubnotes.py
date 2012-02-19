@@ -23,7 +23,6 @@ class MainPage(webapp.RequestHandler):
     
     def evaluate(self):
         if self.force_authentication() == True:
-            self.get_dropbox_client()
             self.evaluate_action()
 
     def force_authentication(self):
@@ -43,13 +42,8 @@ class MainPage(webapp.RequestHandler):
             raise authentication.RedirectionException ("User redirected")
         self.session.authenticate_user()
 
-    def get_dropbox_client(self):
-        conf = self.session.config
-        self.dropbox_client = client.DropboxClient(conf['server'], conf['content_server'],
-                                                   conf['port'], self.session.dropbox_auth, self.session.access_token)
-        
     def evaluate_action(self):
-        act = action.ActionFactory.create(self.request.get('action'), self.request, self.dropbox_client, self.session)
+        act = action.ActionFactory.create(self.request.get('action'), self.request, self.session)
         path, template_values = act.do()
         self.response.out.write(template.render(path, template_values))
    
