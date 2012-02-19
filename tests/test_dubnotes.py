@@ -1,25 +1,14 @@
 import unittest
+import os
+import sys
 import httplib
 import string
+sys.path.append("..")
+os.environ['DUBNOTES_DEBUG'] = "true"
 import dubnotes
-import sys
+import authentication
 import fake_dropbox
-
-class PseudoSocket(object):
-    def write(self, stuff):
-        self.data = stuff
-        
-class StdOutRedirector:
-    def __init__(self):
-        self.out = PseudoSocket()
-        self.headers = {}
-    def set_status(self, status):
-        self.status = status
-    def clear(self):
-        pass
-
-class DictWithURI(dict):
-    uri = "" 
+from helper import *
 
 class DubnotesOnlineTests(unittest.TestCase):
     def setUp(self):
@@ -53,22 +42,22 @@ class DubnotesOfflineTests(unittest.TestCase):
     def testQuickAuthOnFakeDropbox(self):
         self.mainpage.request = {'oauth_token':'oauth_token', 'uid':'user'}
         self.mainpage.authenticate_user()
-        assert self.mainpage.auth.user.uid == 'user'
+        assert self.mainpage.session.user.uid == 'user'
         
     def testPartitialAuthentication(self):
         self.mainpage.request = DictWithURI([('oauth_token', 'oauth_token')])
         self.mainpage.force_authentication()
-        assert isinstance(self.mainpage.auth, dubnotes.RedirectedSession)
+        assert isinstance(self.mainpage.session, authentication.RedirectedSession)
         self.assertEqual (False, self.mainpage.force_authentication())
         self.mainpage.request = DictWithURI([('uid', 'user')])
-        with self.assertRaises(dubnotes.AuthenticationException):
+        with self.assertRaises(authentication.AuthenticationException):
             self.mainpage.authenticate_user()
         self.assertEqual (False, self.mainpage.force_authentication())
-        assert isinstance(self.mainpage.auth, dubnotes.RedirectedSession)
+        assert isinstance(self.mainpage.session, authentication.RedirectedSession)
         
     def testQuickAuthWithUnknownUser(self):
         self.mainpage.request = DictWithURI([('uid', '')])
-        with self.assertRaises(dubnotes.AuthenticationException):
+        with self.assertRaises(authentication.AuthenticationException):
             self.mainpage.authenticate_user()
             
         assert self.mainpage.response.status == 302
@@ -77,7 +66,7 @@ class DubnotesOfflineTests(unittest.TestCase):
     def testAuthentictionWithWrongUser(self):
         self.mainpage.request = {'oauth_token':'a_request_token', 'uid':'non_existing_user'}
         self.mainpage.authenticate_user()
-        assert self.mainpage.auth.user.uid == 'non_existing_user'
+        assert self.mainpage.session.user.uid == 'non_existing_user'
 
     def testListPage(self):
         request = {
@@ -168,36 +157,4 @@ class DubnotesOfflineTests(unittest.TestCase):
         self.mainpage.get()
         return self.mainpage.response.out.data
 
-class MinimalRequest():
-    def __init__(self, dict):
-        self.data = dict
-    def get(self, name, default_value=""):
-        if not self.data.has_key(name):
-            return default_value
-        return self.data[name]
-
-class DubnotesPostTests(unittest.TestCase):
-    def setUp(self):
-        self.mainpage = dubnotes.MainPage()
-        self.mainpage.response = StdOutRedirector()
-    
-    def testPostFile(self):
-        request = { 
-                    'oauth_token':'oauth_token', 
-                    'uid':'user',
-                    'f_name': 'a_file',
-                    'f_showname': 'a cute file',
-                    'f_content': 'ths is a test'
-                   }
-        self.mainpage.request = MinimalRequest(request)
-        self.mainpage.post()
         
-if __name__ == "__main__":
-    import fake_dropbox
-    suites = []
-    suites.append(unittest.TestLoader().loadTestsFromTestCase(DubnotesOnlineTests))
-    suites.append(unittest.TestLoader().loadTestsFromTestCase(DubnotesOfflineTests))
-    suites.append(unittest.TestLoader().loadTestsFromTestCase(DubnotesPostTests))
-    suites.append(unittest.TestLoader().loadTestsFromTestCase(fake_dropbox.client.ClientTests))
-    suite = unittest.TestSuite(suites)
-    unittest.TextTestRunner(verbosity=2).run(suite)
