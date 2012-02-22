@@ -7,6 +7,11 @@ handlers:
 - url: /stylesheets
   static_dir: stylesheets
 
+- url: /cache.manifest
+  mime_type: text/cache-manifest
+  static_files: cache.manifest
+  upload: cache.manifest
+
 - url: /html
   static_dir: html
 
@@ -25,4 +30,3 @@ handlers:
 
 - url: /demo
   script: demo/demo.py
-
