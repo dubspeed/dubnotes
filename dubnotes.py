@@ -52,7 +52,7 @@ class MainPage(webapp.RequestHandler):
 
          
 application = webapp.WSGIApplication(
-                                     [('/', MainPage), ],
+                                     [('/list/', MainPage), ],
                                      debug=False)
 
 def main():

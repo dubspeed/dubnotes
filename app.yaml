@@ -20,9 +20,8 @@ handlers:
 - url: /script
   static_dir: script
 
-- url: .*
+- url: /list/.*
   script: dubnotes.py
 
-- url: /demo
-  script: demo/demo.py
+
 
