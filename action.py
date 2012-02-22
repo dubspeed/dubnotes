@@ -41,8 +41,8 @@ class EditAction(Action):
         super(EditAction, self).__init__(session)
     
     def build_edit_template(self):
-        return {'delete_url':' /?uid=' + self.session.user.uid + '&oauth_token=' + self.session.request_token.req_key + '&fname=' + self.filename + '&action=delete',
-                     'url':'/?uid=' + self.session.user.uid + '&oauth_token=' + self.session.request_token.req_key,
+        return {'delete_url':' /delete/?uid=' + self.session.user.uid + '&oauth_token=' + self.session.request_token.req_key + '&fname=' + self.filename,
+                     'url':'/list/?uid=' + self.session.user.uid + '&oauth_token=' + self.session.request_token.req_key,
                      'content': self.content,
                      'fname': self.filename,
                      'showname': os.path.basename(self.filename)}
@@ -68,9 +68,9 @@ class ListAction(Action):
 
     def build_list_template(self):
         return {
-            'files': [['/?uid=' + self.session.user.uid + '&oauth_token=' + self.session.request_token.req_key + '&action=edit&get=' + cgi.escape(x["path"]), 
+            'files': [['/edit/?uid=' + self.session.user.uid + '&oauth_token=' + self.session.request_token.req_key + '&get=' + cgi.escape(x["path"]), 
                        os.path.basename(x["path"])] for x in self.resp.data['contents'] if not x['is_dir']],
-            'new_url': '/?uid=' + self.session.user.uid + '&oauth_token=' + self.session.request_token.req_key + '&action=new',
+            'new_url': '/new/?uid=' + self.session.user.uid + '&oauth_token=' + self.session.request_token.req_key,
         }
 
     def render(self):
