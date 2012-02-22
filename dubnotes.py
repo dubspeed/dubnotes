@@ -14,7 +14,13 @@ import authentication
 import database
 import action 
    
-class MainPage(webapp.RequestHandler):
+class PageTemplate(webapp.RequestHandler):
+    def get(self):
+        self.evaluate()
+
+    def post(self):
+        self.evaluate()
+    
     def evaluate(self):
         if self.force_authentication() == True:
             self.evaluate_action(self.action)
@@ -44,57 +50,29 @@ class MainPage(webapp.RequestHandler):
     def display_authentication_error(self, exception):
         self.response.out.write (exception)
 
-class ListPage(MainPage):
+class ListPage(PageTemplate):
     def __init__(self):
         super(ListPage, self).__init__()
-
-    def get(self):
         self.action = "list"
-        self.evaluate()
-
+        
     def post(self):
         self.action = "save"
-        self.evaluate()
-    
+        super(ListPage, self).evaluate()
 
-class EditPage(MainPage):
+class EditPage(PageTemplate):
     def __init__(self):
         super(EditPage, self).__init__()
-
-    def get(self):
         self.action = "edit"
-        self.evaluate()
-
-    def post(self):
-        self.action = "edit"
-        self.evaluate()
-
     
-class DeletePage(MainPage):
+class DeletePage(PageTemplate):
     def __init__(self):
         super(DeletePage, self).__init__()
-
-    def get(self):
         self.action = "delete"
-        self.evaluate()
 
-    def post(self):
-        self.action = "delete"
-        self.evaluate()
-
-
-class NewPage(MainPage):
+class NewPage(PageTemplate):
     def __init__(self):
         super(NewPage, self).__init__()
-
-    def get(self):
         self.action = "new"
-        self.evaluate()
-
-    def post(self):
-        self.action = "new"
-        self.evaluate()
-
 
          
 application = webapp.WSGIApplication([ ('/list/', ListPage), 
