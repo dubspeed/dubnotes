@@ -1,6 +1,8 @@
 import os, cgi
 import StringIO
 import datetime
+import urllib
+
 if os.environ.has_key('DUBNOTES_DEBUG'):
     from fake_dropbox import client, rest, auth
 else:
@@ -8,13 +10,13 @@ else:
 
 class ActionFactory(object):
     @staticmethod
-    def create(action, request, session):
+    def create(action, notename, request, session):
         if action == 'edit':
-            return EditAction(request, session)
+            return EditAction(notename, session)
         elif action == 'new':
             return NewAction(session)
         elif action == 'delete':
-            return DeleteAction(request, session)
+            return DeleteAction(notename, session)
         elif action == 'save':
             return SaveAction(request, session)
             pass
@@ -34,8 +36,8 @@ class Action(object):
  
  
 class EditAction(Action):
-    def __init__(self, request, session):
-        self.request = request
+    def __init__(self, notename, session):
+        self.notename = notename
         self.filename = ""
         self.content = ""
         super(EditAction, self).__init__(session)
@@ -59,8 +61,7 @@ class EditAction(Action):
         return (path, template_values)
     
     def do(self):
-        self.filename = self.request.get("get")
-        #TODO: raise if we do not have "get" in request  
+        self.filename = self.session.config["dubnotes_folder"] + "/" + urllib.unquote(self.notename)
         return self.render()
         
               
@@ -124,12 +125,13 @@ class SaveAction(ListAction):
  
  
 class DeleteAction(ListAction):
-    def __init__(self, request, session):
-        self.request = request
+    def __init__(self, notename, session):
+        self.notename = notename
         super(DeleteAction, self).__init__(session)  
           
     def do(self):
-        self.dropbox_client.file_delete(self.session.config['root'], self.request.get('file'))
+        self.filename = self.session.config["dubnotes_folder"] + "/" + urllib.unquote(self.notename)
+        self.dropbox_client.file_delete(self.session.config['root'], self.filename)
         return super(DeleteAction, self).do()
    
    

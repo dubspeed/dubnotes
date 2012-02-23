@@ -16,9 +16,11 @@ import action
    
 class PageTemplate(webapp.RequestHandler):
     def get(self):
+        self.notename = ""
         self.evaluate()
 
     def post(self):
+        self.notename = ""
         self.evaluate()
     
     def evaluate(self):
@@ -43,7 +45,7 @@ class PageTemplate(webapp.RequestHandler):
         self.session.authenticate_user()
 
     def evaluate_action(self, page_action):
-        act = action.ActionFactory.create(page_action, self.request, self.session)
+        act = action.ActionFactory.create(page_action, self.notename, self.request, self.session)
         path, template_values = act.do()
         self.response.out.write(template.render(path, template_values))
    
@@ -64,10 +66,18 @@ class EditPage(PageTemplate):
         super(EditPage, self).__init__()
         self.action = "edit"
     
+    def get(self, notename):
+        self.notename = notename
+        self.evaluate()
+    
 class DeletePage(PageTemplate):
     def __init__(self):
         super(DeletePage, self).__init__()
         self.action = "delete"
+   
+    def get(self, notename):
+        self.notename = notename
+        self.evaluate()
 
 class NewPage(PageTemplate):
     def __init__(self):
@@ -75,10 +85,10 @@ class NewPage(PageTemplate):
         self.action = "new"
 
          
-application = webapp.WSGIApplication([ ('/list', ListPage), 
-                                       ("/edit", EditPage), 
-                                       ("/delete", DeletePage),
-                                       ("/new", NewPage), ], 
+application = webapp.WSGIApplication([ ('/notes', ListPage), 
+                                       (r'/edit/(.*?)', EditPage), 
+                                       (r'/delete/(.*?)', DeletePage),
+                                       ('/new', NewPage), ], 
                                      debug=False)
 
 def main():

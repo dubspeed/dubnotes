@@ -12,24 +12,15 @@
 
       <div data-role="header">
         <h1>Dub Notes</h1>
-        <form action="/new">
-            <input type="submit" data-ajax="false" data-icon="plus" value="New" />
-            <input type="hidden" name="uid" value="{{ user }}" />
-            <input type="hidden" name="oauth_token" value="{{ token }}" />
-        </form>
+        <a data-icon="plus" href="/new?uid={{ user }}&amp;oauth_token={{ token }}" />New</a>
       </div>
       <div data-role="content">
           <fieldset>
           <ul data-role="listview" data-filter='true'>
               {% for path, name in files %}
-                  <form method="post" action="edit">
                   <li>
-                  <input type="submit" data-transition="slide" value="{{ name }}" />
-                  <input type="hidden" name="uid" value="{{ user }}" />
-                  <input type="hidden" name="oauth_token" value="{{ token }}" />
-                  <input type="hidden" name="get" value="{{ path }}" />
+                  <a data-transition="slide" href="/edit/{{ name }}?uid={{ user }}&amp;oauth_token={{ token }}">{{ name }}</a>
                   </li>
-                  </form>
               {% endfor %}
           </ul>
           </fieldset>        

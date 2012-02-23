@@ -20,12 +20,7 @@
     
     <div data-role="header">
         <h1>Edit Note</h1>
-        <form action="/delete" method="post">
-            <input type="submit" data-icon="delete" data-ajax="false" class="ui-btn-right" value="Delete"/>
-            <input type="hidden" id="file" name="file" value="{{ file }}" />
-            <input type="hidden" name="uid" value="{{ user }}" />
-            <input type="hidden" name="oauth_token" value="{{ token }}" />
-        </form>
+        <a data-icon="delete" class="ui-btn-right" href="/delete/{{ displayname }}?uid={{ user }}&amp;oauth_token={{ token }}">Delete</a>
       </div>
       
       <div data-role="content">
