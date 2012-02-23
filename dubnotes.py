@@ -54,10 +54,10 @@ class ListPage(PageTemplate):
     def __init__(self):
         super(ListPage, self).__init__()
         self.action = "list"
-        
+           
     def post(self):
         self.action = "save"
-        super(ListPage, self).evaluate()
+        super(ListPage, self).post()
 
 class EditPage(PageTemplate):
     def __init__(self):
@@ -75,10 +75,10 @@ class NewPage(PageTemplate):
         self.action = "new"
 
          
-application = webapp.WSGIApplication([ ('/list/', ListPage), 
-                                       ("/edit/", EditPage), 
-                                       ("/delete/", DeletePage),
-                                       ("/new/", NewPage), ], 
+application = webapp.WSGIApplication([ ('/list', ListPage), 
+                                       ("/edit", EditPage), 
+                                       ("/delete", DeletePage),
+                                       ("/new", NewPage), ], 
                                      debug=False)
 
 def main():

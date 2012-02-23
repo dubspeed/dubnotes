@@ -9,36 +9,41 @@
 </head> 
 <body> 
 <div data-role="page">
-
-  <script>
-    // when the page is complete, fire a "keyup" event to the textarea, to make it grow
-    $(document).bind("pagecreate", function(){
-       $('#f_content').trigger('keyup');
-       //alert('huhu');
-    });
-	</script>
-
-      <div data-role="header">
+    
+    <script>
+      // when the page is complete, fire a "keyup" event to the textarea, to make it grow
+      $(document).bind("pagecreate", function(){
+         $('#f_content').trigger('keyup');
+         //alert('huhu');
+      });
+    </script>
+    
+    <div data-role="header">
         <h1>Edit Note</h1>
-        <a href="{{ delete_url }}" data-icon="delete" data-ajax="false" class="ui-btn-right">Delete</a>
+        <form action="/delete" method="post">
+            <input type="submit" data-icon="delete" data-ajax="false" class="ui-btn-right" value="Delete"/>
+            <input type="hidden" id="file" name="file" value="{{ file }}" />
+            <input type="hidden" name="uid" value="{{ user }}" />
+            <input type="hidden" name="oauth_token" value="{{ token }}" />
+        </form>
       </div>
+      
       <div data-role="content">
-
-
-        <form action="{{ url }}" method="post" data-direction="reverse" data-ajax="false">
-            <fieldset>
+        <form action="/list" method="post" data-direction="reverse" data-ajax="false">
+            <fieldset> 
               <div data-role="fieldcontain">
-                <label for="f_showname">Filename</label>
-                <input id="f_showname" name="f_showname" value="{{ showname }}" />
+                <label for="displayname">Filename</label>
+                <input id="displayname" name="displayname" value="{{ displayname }}" />
               </div>
               
               <div data-role="fieldcontain">
-                <label for="f_fname">Content</label>
-                <textarea id="f_content" name="f_content" cols="40" rows="10">{{ content }}</textarea>
+                <label for="content">Content</label>
+                <textarea id="content" name="content" cols="40" rows="10">{{ content }}</textarea>
               </div>
-              <input type="hidden" id="f_name" name="f_name" value="{{ fname }}" />
-              <input type="hidden" id="action" name="action" value="save" />
-              <input id="f_submit" type="submit" value="save" />
+              <input type="hidden" id="file" name="file" value="{{ file }}" />
+              <input type="hidden" name="uid" value="{{ user }}" />
+              <input type="hidden" name="oauth_token" value="{{ token }}" />
+              <input type="submit" value="done" />
             </fieldset>
         </form>
          

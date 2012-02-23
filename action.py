@@ -41,11 +41,13 @@ class EditAction(Action):
         super(EditAction, self).__init__(session)
     
     def build_edit_template(self):
-        return {'delete_url':' /delete/?uid=' + self.session.user.uid + '&oauth_token=' + self.session.request_token.req_key + '&fname=' + self.filename,
-                     'url':'/list/?uid=' + self.session.user.uid + '&oauth_token=' + self.session.request_token.req_key,
-                     'content': self.content,
-                     'fname': self.filename,
-                     'showname': os.path.basename(self.filename)}
+        return {
+                 'user': self.session.user.uid,
+                 'token': self.session.request_token.req_key,
+                 'content': self.content,
+                 'file': self.filename,
+                 'displayname': os.path.basename(self.filename)
+                }
 
     def render(self):
         if self.filename != '':
@@ -67,10 +69,11 @@ class ListAction(Action):
         super(ListAction, self).__init__(session)
 
     def build_list_template(self):
+        file_list =  [[cgi.escape(x["path"]), os.path.basename(x["path"])] for x in self.resp.data['contents'] if not x['is_dir']]
         return {
-            'files': [['/edit/?uid=' + self.session.user.uid + '&oauth_token=' + self.session.request_token.req_key + '&get=' + cgi.escape(x["path"]), 
-                       os.path.basename(x["path"])] for x in self.resp.data['contents'] if not x['is_dir']],
-            'new_url': '/new/?uid=' + self.session.user.uid + '&oauth_token=' + self.session.request_token.req_key,
+            'user': self.session.user.uid,
+            'token': self.session.request_token.req_key,
+            'files': file_list,
         }
 
     def render(self):
@@ -98,9 +101,9 @@ class SaveAction(ListAction):
         super(SaveAction, self).__init__(session)
 
     def do(self):
-        fname = self.request.get("f_name")
-        showname = self.request.get("f_showname")
-        content = self.request.get("f_content")
+        fname = self.request.get("file")
+        showname = self.request.get("displayname")
+        content = self.request.get("content")
         s = StringIO.StringIO(content.encode("utf-8"))
         if fname != '':
             folder, s.name = os.path.split(fname)
@@ -126,7 +129,7 @@ class DeleteAction(ListAction):
         super(DeleteAction, self).__init__(session)  
           
     def do(self):
-        self.dropbox_client.file_delete(self.session.config['root'], self.request.get('fname'))
+        self.dropbox_client.file_delete(self.session.config['root'], self.request.get('file'))
         return super(DeleteAction, self).do()
    
    
