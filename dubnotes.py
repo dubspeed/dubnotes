@@ -43,7 +43,7 @@ class PageTemplate(webapp.RequestHandler):
         self.session.authenticate_user()
 
     def evaluate_action(self, page_action):
-        act = action.ActionFactory.create(page_action, self.request, self.session)
+        act = action.ActionFactory.create(page_action, self.notename, self.request, self.session)
         path, template_values = act.do()
         self.response.out.write(template.render(path, template_values))
    
@@ -54,6 +54,7 @@ class ListPage(PageTemplate):
     def __init__(self):
         super(ListPage, self).__init__()
         self.action = "list"
+        self.notename = ""
     
     def get(self, uid):
         self.uid = uid
@@ -68,11 +69,12 @@ class EditPage(PageTemplate):
     def __init__(self):
         super(EditPage, self).__init__()
         self.action = "edit"
+        self.notename = ""
  
     def get(self, uid, note):
         self.uid = uid
         self.oauth_token = self.request.get('oauth_token', None)
-        self.note = note
+        self.notename = note
         self.evaluate()
  
 class RedirectPage(PageTemplate):

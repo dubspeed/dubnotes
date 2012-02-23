@@ -23,7 +23,7 @@
           <ul data-role="listview" data-filter='true'>
               {% for path, name in files %}
                   <li>
-                  <a href="/{{ user }}/note/{{ name }}?oauth_token={{ token }}&amp;get={{ path }}" data-ajax="false" data-transition="slide">{{ name }}</a>
+                  <a href="/{{ user }}/note/{{ name }}?oauth_token={{ token }}" data-ajax="false" data-transition="slide">{{ name }}</a>
                   </li>
               {% endfor %}
           </ul>
