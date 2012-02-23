@@ -36,7 +36,7 @@ class PageTemplate(webapp.RequestHandler):
         return False
 
     def authenticate_user(self):
-        self.session = authentication.SessionFactory.create(self.request)
+        self.session = authentication.SessionFactory.create(self.request.uri, self.uid, self.oauth_token)
         if self.session.needs_redirect():
             self.redirect(self.session.get_authorization_url())
             raise authentication.RedirectionException ("User redirected")
@@ -54,6 +54,11 @@ class ListPage(PageTemplate):
     def __init__(self):
         super(ListPage, self).__init__()
         self.action = "list"
+    
+    def get(self, uid):
+        self.uid = uid
+        self.oauth_token = self.request.get('oauth_token', None)
+        super(ListPage, self).get()
            
     def post(self):
         self.action = "save"
@@ -63,23 +68,26 @@ class EditPage(PageTemplate):
     def __init__(self):
         super(EditPage, self).__init__()
         self.action = "edit"
-    
-class DeletePage(PageTemplate):
+ 
+    def get(self, uid, note):
+        self.uid = uid
+        self.oauth_token = self.request.get('oauth_token', None)
+        self.note = note
+        self.evaluate()
+ 
+class RedirectPage(PageTemplate):
     def __init__(self):
-        super(DeletePage, self).__init__()
-        self.action = "delete"
+        super(RedirectPage, self).__init__()
 
-class NewPage(PageTemplate):
-    def __init__(self):
-        super(NewPage, self).__init__()
-        self.action = "new"
-
+    def get(self):
+        self.uid = self.request.get("uid")
+        self.oauth_token = self.request.get('oauth_token')
+        self.redirect("http://10.0.1.34:8080/"+self.uid+"/note?oauth_token="+self.oauth_token)
          
-application = webapp.WSGIApplication([ ('/list', ListPage), 
-                                       ("/edit", EditPage), 
-                                       ("/delete", DeletePage),
-                                       ("/new", NewPage), ], 
-                                     debug=False)
+application = webapp.WSGIApplication([ (r'/(.*?)/note', ListPage), 
+                                       (r'/(.*?)/note/(.*?)', EditPage),
+                                       (r'/redirect', RedirectPage) ],
+                                     debug=True)
 
 def main():
     run_wsgi_app(application)

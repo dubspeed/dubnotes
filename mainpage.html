@@ -22,14 +22,9 @@
           <fieldset>
           <ul data-role="listview" data-filter='true'>
               {% for path, name in files %}
-                  <form method="post" action="edit">
                   <li>
-                  <input type="submit" data-transition="slide" value="{{ name }}" />
-                  <input type="hidden" name="uid" value="{{ user }}" />
-                  <input type="hidden" name="oauth_token" value="{{ token }}" />
-                  <input type="hidden" name="get" value="{{ path }}" />
+                  <a href="/{{ user }}/note/{{ name }}?oauth_token={{ token }}&amp;get={{ path }}" data-ajax="false" data-transition="slide">{{ name }}</a>
                   </li>
-                  </form>
               {% endfor %}
           </ul>
           </fieldset>        

@@ -7,24 +7,24 @@ from oauth import oauth
 from database import *
 
 class Session(object):
-    def __init__ (self, request):
+    def __init__ (self):
         dubnotes_path = os.path.join(os.path.dirname(__file__), 'dubnotes.ini') 
         self.config = auth.Authenticator.load_config (dubnotes_path)
         self.dropbox_auth = auth.Authenticator(self.config)
-        self.request = request
   
     def needs_redirect(self):
         return False
   
 class RedirectedSession(Session):
-    def __init__(self, request):
-       super(RedirectedSession, self).__init__(request)
+    def __init__(self, uri):
+       super(RedirectedSession, self).__init__()
        self.request_token = None
+       self.uri = uri
        
     def get_authorization_url(self):
         self.request_token = self.obtain_request_token()
         db_store_token(self.request_token)
-        authorize_url = self.dropbox_auth.build_authorize_url(self.request_token, self.request.uri)
+        authorize_url = self.dropbox_auth.build_authorize_url(self.request_token, "http://10.0.1.34:8080/redirect")
         return authorize_url
 
     def obtain_request_token(self):
@@ -34,10 +34,10 @@ class RedirectedSession(Session):
         return True
 
 class AuthenticatedSession(Session):
-    def __init__(self, request):
-        super(AuthenticatedSession, self).__init__(request)
-        self.uid = self.request.get('uid')
-        self.request_token = db_get_token(self.request.get('oauth_token'))
+    def __init__(self, uid, oauth_token):
+        super(AuthenticatedSession, self).__init__()
+        self.uid = uid
+        self.request_token = db_get_token(oauth_token)
         self.access_token = None
         self.user = None
 
@@ -64,11 +64,11 @@ class AuthenticatedSession(Session):
  
 class SessionFactory:
     @staticmethod 
-    def create(request):
-        if request.get('uid',None) == None or request.get('oauth_token',None) == None:
-            return RedirectedSession(request)
+    def create(uri, uid, oauth_token):
+        if oauth_token == None:
+            return RedirectedSession(uri)
         else:
-            return AuthenticatedSession(request)
+            return AuthenticatedSession(uid, oauth_token)
 
   
 class AuthenticationException(Exception):
