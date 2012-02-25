@@ -19,7 +19,8 @@ class ActionFactory(object):
             return DeleteAction(notename, session)
         elif action == 'save':
             return SaveAction(request, session)
-            pass
+        elif action == 'json':
+            return JSONAction(request, session)
         return ListAction(session)
 
 
@@ -150,3 +151,19 @@ class NewAction(ListAction):
     def do(self):
         self.create_new_file()
         return super(NewAction, self).do()
+
+
+class JSONAction(ListAction):
+    def __init__(self, request, session):
+        self.request = request
+        super(JSONAction, self).__init__(session)
+
+    def render(self):
+        # copy from ListAction 
+        self.resp = self.dropbox_client.metadata(self.session.config['root'], self.session.config['dubnotes_folder'])
+        template_values = self.build_list_template()
+        path = os.path.join(os.path.dirname(__file__), 'jsonpage.html')
+        return (path, template_values)
+
+    def do(self):
+        return self.render()

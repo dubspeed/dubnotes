@@ -1,0 +1,80 @@
+<!DOCTYPE html> 
+<html> 
+  <head> 
+  <title>Dubnotes</title> 
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"> 
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="stylesheet" href="http://code.jquery.com/mobile/1.0.1/jquery.mobile-1.0.1.min.css" />
+  <script src="http://code.jquery.com/jquery-1.6.4.min.js"></script>
+  <script src="http://code.jquery.com/mobile/1.0.1/jquery.mobile-1.0.1.min.js"></script>
+  <script src="script/json_injector.js"></script>
+</head> 
+
+<body> 
+
+  <div data-role="page" id="list"> 
+    <div data-role="header">
+      <h1>Dubnotes</h1>
+      <a id="new" data-icon="plus" href="#list">New</a>
+      <a id="done" data-icon="check" href="#list">Done</a>
+    </div> 
+    <div data-role="content">
+      <ul data-role="listview" data-filter='true'>
+      </ul>
+    </div> 
+    <div data-role="footer" data-position="fixed" data-id="footer">
+      <div data-role="navbar">
+        <ul>
+          <li><a href="clientapp.html" id="delete" data-icon="delete">Delete</a></li>
+          <li><a href="" id="settings" data-icon="gear">Settings</a></li>
+          <li><a href="" id="sync" data-icon="refresh">Sync</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div data-role="page" id="edit">
+    <div data-role="header">
+      <h1>Edit note</h1>
+      <a href="#list" data-role="button" data-rel="back">Back</a>
+    </div> 
+    <div data-role="content">
+      <form>
+        <label for="name" class="ui-hidden-accessible">Name</label>
+        <input id="name" type="text" name="name"/>
+        <label for="text" class="ui-hidden-accessible">Text</label>
+        <textarea name="text" id="text" cols="40" rows="10"></textarea>
+        <input type="submit" id="submit" value="Done"/>
+      </form>
+    </div> 
+    <div data-role="footer" data-position="fixed" data-id="footer">
+      <div data-role="navbar">
+        <ul>
+          <li><a href="ded" data-icon="delete">Delete</a></li>
+          <li><a href="kfd" data-icon="settings"> Settings</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  
+  
+  <div data-role="page" id="dialog">
+
+		<div data-role="header" data-theme="a">
+			<h1>Delete?</h1>
+		</div><!-- /header -->
+
+		<div data-role="content">
+			<h4>Are you sure you want to delete?.</h4>
+			<a href="#list" data-role="button" data-rel="back" data-theme="b">Cancel</a>
+			<a href="#list" data-role="button" data-rel="back">Yes</a>
+
+		</div>
+
+		</div><!-- /page -->
+	
+  
+  
+</body>
+</html>

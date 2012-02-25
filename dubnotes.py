@@ -84,11 +84,31 @@ class NewPage(PageTemplate):
         super(NewPage, self).__init__()
         self.action = "new"
 
+class JSONPage(PageTemplate):
+    def __init__(self):
+         super(JSONPage, self).__init__()
+         self.action = "json"
+
+class AuthenticatePage(PageTemplate):
+    def __init__(self):
+         super(AuthenticatePage, self).__init__()
+         self.action = "authenticate"
+         self.notename = ""
+         
+    def get(self):
+        uid = self.request.get('uid', None)
+        token = self.request.get('oauth_token', None)
+        redirect_url = self.request.get('url', None)
+        if uid != None and token != None and redirect_url != None:
+            self.redirect(redirect_url + "?uid="+uid+"&oauth_token="+token)
+        self.evaluate()
          
 application = webapp.WSGIApplication([ ('/notes', ListPage), 
                                        (r'/edit/(.*?)', EditPage), 
                                        (r'/delete/(.*?)', DeletePage),
-                                       ('/new', NewPage), ], 
+                                       ('/new', NewPage),
+                                       ('/json', JSONPage), 
+                                       ('/authenticate', AuthenticatePage),], 
                                      debug=False)
 
 def main():
