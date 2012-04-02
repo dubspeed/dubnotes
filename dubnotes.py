@@ -83,11 +83,16 @@ class NewPage(PageTemplate):
     def __init__(self):
         super(NewPage, self).__init__()
         self.action = "new"
+        self.notename = ""
 
 class JSONPage(PageTemplate):
     def __init__(self):
          super(JSONPage, self).__init__()
          self.action = "json"
+    
+    def get(self, notename="list"):
+        self.notename = notename
+        self.evaluate()
 
 class AuthenticatePage(PageTemplate):
     def __init__(self):
@@ -107,7 +112,8 @@ application = webapp.WSGIApplication([ ('/notes', ListPage),
                                        (r'/edit/(.*?)', EditPage), 
                                        (r'/delete/(.*?)', DeletePage),
                                        ('/new', NewPage),
-                                       ('/json', JSONPage), 
+                                       (r'/json/list', JSONPage), 
+                                       (r'/json/(.*?)', JSONPage),
                                        ('/authenticate', AuthenticatePage),], 
                                      debug=False)
 

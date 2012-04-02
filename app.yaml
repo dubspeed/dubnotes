@@ -21,7 +21,10 @@ handlers:
   static_files: clientapp.html
   upload: clientapp.html
 
-- url: /json
+- url: /json/list
+  script: dubnotes.py
+
+- url: /json/(.*?)
   script: dubnotes.py
 
 - url: /authenticate

@@ -13,33 +13,38 @@
 
 <body> 
 
-  <div data-role="page" id="list"> 
-    <div data-role="header">
+  <!--- LIST PAGE -->
+  <section data-role="page" id="list"> 
+    <header data-role="header">
       <h1>Dubnotes</h1>
       <a id="new" data-icon="plus" href="#list">New</a>
       <a id="done" data-icon="check" href="#list">Done</a>
-    </div> 
-    <div data-role="content">
+    </header>
+    <content data-role="content">
       <ul data-role="listview" data-filter='true'>
       </ul>
-    </div> 
-    <div data-role="footer" data-position="fixed" data-id="footer">
+    </content> 
+    <footer data-role="footer" data-position="fixed" data-id="footer">
       <div data-role="navbar">
         <ul>
-          <li><a href="clientapp.html" id="delete" data-icon="delete">Delete</a></li>
+          <li><a href="" id="delete"   data-icon="delete">Delete</a></li>
           <li><a href="" id="settings" data-icon="gear">Settings</a></li>
-          <li><a href="" id="sync" data-icon="refresh">Sync</a></li>
+          <li><a href="" id="sync"     data-icon="refresh">Sync</a></li>
         </ul>
       </div>
-    </div>
-  </div>
+    </footer>
+  </section>
+  <!--- LIST PAGE -->
 
-  <div data-role="page" id="edit">
-    <div data-role="header">
+
+
+  <!--- EDIT PAGE -->
+  <section data-role="page" id="edit">
+    <header data-role="header">
       <h1>Edit note</h1>
       <a href="#list" data-role="button" data-rel="back">Back</a>
-    </div> 
-    <div data-role="content">
+    </header> 
+    <content data-role="content">
       <form>
         <label for="name" class="ui-hidden-accessible">Name</label>
         <input id="name" type="text" name="name"/>
@@ -47,33 +52,31 @@
         <textarea name="text" id="text" cols="40" rows="10"></textarea>
         <input type="submit" id="submit" value="Done"/>
       </form>
-    </div> 
-    <div data-role="footer" data-position="fixed" data-id="footer">
+    </content> 
+    <footer data-role="footer" data-position="fixed" data-id="footer">
       <div data-role="navbar">
         <ul>
           <li><a href="ded" data-icon="delete">Delete</a></li>
           <li><a href="kfd" data-icon="settings"> Settings</a></li>
         </ul>
       </div>
-    </div>
-  </div>
+    </footer>
+  </section>
+  <!--- EDIT PAGE -->
   
   
-  <div data-role="page" id="dialog">
-
-		<div data-role="header" data-theme="a">
+  <!--- DELETE DIALOG -->
+  <section data-role="page" id="dialog">
+		<header data-role="header" data-theme="a">
 			<h1>Delete?</h1>
-		</div><!-- /header -->
-
-		<div data-role="content">
+		</header><!-- /header -->
+		<content data-role="content">
 			<h4>Are you sure you want to delete?.</h4>
 			<a href="#list" data-role="button" data-rel="back" data-theme="b">Cancel</a>
 			<a href="#list" data-role="button" data-rel="back">Yes</a>
-
-		</div>
-
-		</div><!-- /page -->
-	
+		</content>
+	</section>
+	<!--- DELETE DIALOG -->
   
   
 </body>

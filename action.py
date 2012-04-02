@@ -20,7 +20,7 @@ class ActionFactory(object):
         elif action == 'save':
             return SaveAction(request, session)
         elif action == 'json':
-            return JSONAction(request, session)
+            return JSONAction(notename, request, session)
         return ListAction(session)
 
 
@@ -34,7 +34,7 @@ class Action(object):
     def do(self):
         pass
 
- 
+        
  
 class EditAction(Action):
     def __init__(self, notename, session):
@@ -154,16 +154,46 @@ class NewAction(ListAction):
 
 
 class JSONAction(ListAction):
-    def __init__(self, request, session):
+    def __init__(self, notename, request, session):
         self.request = request
+        self.notename = notename
         super(JSONAction, self).__init__(session)
 
-    def render(self):
-        # copy from ListAction 
+    def get_content(self, filename):
+        if filename != '':
+             filename = self.session.config["dubnotes_folder"] + "/" + urllib.unquote(filename)
+             f = self.dropbox_client.get_file (self.session.config['root'], filename)
+             content = f.read()
+             f.close()
+        return content
+        
+    def build_list_template(self):    
+        file_list =  [ [ cgi.escape(x["path"]), os.path.basename(x["path"])] for x in self.resp.data['contents'] if not x['is_dir']]
+        return {
+            'user': self.session.user.uid,
+            'token': self.session.request_token.req_key,
+            'files': file_list,
+        }
+    def build_note_template(self):
+        content = self.get_content(self.notename)
+        return {
+            'name': self.notename,
+            'text': content
+        }
+
+    def render_note(self):
+        self.resp = self.dropbox_client.metadata(self.session.config['root'], self.session.config['dubnotes_folder'])
+        template_values = self.build_note_template()
+        path = os.path.join(os.path.dirname(__file__), 'notepage.html')
+        return (path, template_values)        
+
+    def render_list(self):
         self.resp = self.dropbox_client.metadata(self.session.config['root'], self.session.config['dubnotes_folder'])
         template_values = self.build_list_template()
         path = os.path.join(os.path.dirname(__file__), 'jsonpage.html')
-        return (path, template_values)
+        return (path, template_values)        
 
     def do(self):
-        return self.render()
+        if self.notename == "list":
+            return self.render_list()
+        return self.render_note()

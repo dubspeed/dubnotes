@@ -18,6 +18,9 @@ var notesData = {
 	]
 };
 
+var note;
+var noteName;
+
 var dubnotesSession = {
     "uid": "",
     "oauth_token": ""
@@ -29,13 +32,43 @@ function fetchNotesFromServer() {
         data = dubnotesSession;
     }
     $.ajax({
-      url: "http://10.0.1.34:8080/json",
+      url: "http://localhost:8080/json/list",
       dataType: 'json',
       data: data,
-      success: json_success,
-      error: json_error
+      success: fetch_success,
+      error: fetch_error
     });
 } 
+
+function fetch_success (data, textStatus, jqHXR) {
+    notesData = data;
+    rebuildListView($("#list"), "star");
+}
+
+function fetch_error (data, textStatus, jqHXR) {
+    // authenticate if we did not fetch
+    window.location = "http://localhost:8080/authenticate?url="+$(location).attr('pathname'); //href
+}
+
+function fetchOneNote(name) {
+    var data={}
+    if (dubnotesSession.uid != "") {
+        data = dubnotesSession;
+    }
+    $.ajax({
+      url: "http://localhost:8080/json/" + name,
+      dataType: 'json',
+      data: data,
+      success: onenote_success,
+      error: fetch_error
+    });
+}
+
+function onenote_success(data, textStatus, jqHXR) {
+    note = data;
+    $("#text").html(note.text);
+    $("#text").textinput();
+}
 
 function findNewNoteName() {
     //TODO: implement
@@ -93,12 +126,14 @@ function showNote( urlObj, options )
     	markup= "",
     	notename = urlObj.hash.replace( /.*#edit#/, "" );
 
-    for (var i=0; i<notesData.notes.length; i++) {
+    /*for (var i=0; i<notesData.notes.length; i++) {
         if (notesData.notes[i].name == notename) {
             markup += notesData.notes[i].text
         }
     }
+    
     $("#text").val( markup );
+    */
     $("#name").val( notename );
     page.page();
     
@@ -112,7 +147,7 @@ $(document).bind( "pagebeforechange", function( e, data ) {
 	if (url_ap.match(/oauth_token/)) {
 	    dubnotesSession.uid = url_ap.replace(/\&oauth_token\=.[a-z0-9]*/, "").slice(5);
 	    dubnotesSession.oauth_token = url_ap.replace(/\?uid=[0-9]*&oauth_token=/, "")
-	    fetchNotesFromServer(); x 
+	    fetchNotesFromServer();  
 	}
 	
 	// We only want to handle changePage() calls where the caller is
@@ -123,6 +158,7 @@ $(document).bind( "pagebeforechange", function( e, data ) {
 			re = /^#edit#/;
 			
 		if ( u.hash.search(re) !== -1 ) {
+			fetchOneNote(u.hash.replace(/#edit#/, ""));
 			showNote( u, data.options );
 			e.preventDefault();
 		}
@@ -168,15 +204,6 @@ $("#done").live ("click", function(event, ui) {
     deactivateButton($("#delete"));
     rebuildListView($("#list"), "star");
 });
-
-function json_success (data, textStatus, jqHXR) {
-    notesData = data;
-    rebuildListView($("#list"), "star");
-}
-
-function json_error (data, textStatus, jqHXR) {
-    window.location = "http://10.0.1.34:8080/authenticate?url="+$(location).attr('pathname'); //href
-}
 
 $("#sync").live ("click", function(event, ui) {
     event.preventDefault();
