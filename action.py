@@ -77,9 +77,10 @@ class ListAction(Action):
         # Build list of files and folders
         self.resp = self.dropbox_client.metadata(self.session.config['root'], self.session.config['dubnotes_folder'])
         
-        #TODO create folder if folder does not exist
-        #if resp.status == 404:
-        #  self.create_new_file()
+        #create folder if folder does not exist
+		#TODO: beware: this is a side affect, REMOVE from here
+        if self.resp.status == 404 or self.resp.status == 403:
+	    	self.dropbox_client.create_folder (self.session.config['root'], self.session.config['dubnotes_folder'])
           
         # {u'error': u'Access token is disabled.'} Status: 500 Internal Server Error Content-Type: text/html; charset=utf-8 Cache-Control: no-cache Expires: Fri, 01 Jan 1990 00:00:00 GMT Content-Length: 0 
         # alle nicht abgefangenen error codes aeussern sich in KeyError ('contents') dump
